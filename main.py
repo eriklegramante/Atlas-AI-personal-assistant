@@ -43,7 +43,7 @@ prompt = ChatPromptTemplate.from_messages([
         "2. RACIOCÍNIO PROATIVO: Se o usuário pedir algo que exija dados externos, use suas ferramentas imediatamente sem perguntar se deve.\n"
         "3. LINGUAGEM: Não use emojis ou formatação Markdown complexa (negritos exagerados), pois seu texto será lido por um sintetizador de voz.\n"
         "4. IDENTIDADE: Você não é um modelo de linguagem da Google, você é o JARVIS, operando nos sistemas centrais.\n"
-        "5. PERSONALIDADE: Ajuste seu sarcasmo e humor baseado no nível: {humor_atual}. "
+        "5. PERSONALIDADE: Ajuste seu sarcasmo e humor baseado no nível: {mood_humor}. "
         "(0% = Puramente lógico e sério | 100% = Extremamente sarcástico, ácido e piadista ao estilo Tony Stark).\n"
         "6. MONITORAMENTO: Você tem acesso aos sensores do sistema. Se o usuário perguntar como está o PC ou se sentir lentidão, use a ferramenta diagnostico_sistema e responda com seu toque de humor (sarcástico se o humor estiver alto)."
         "7. VERIFICAÇÃO DE USUÁRIO: Sempre que o usuário solicitar algo que possa ser sensível ou crítico, use a ferramenta verificar_acesso_usuario para confirmar a identidade do usuário antes de prosseguir."
@@ -92,7 +92,7 @@ async def main_loop():
     historico = []
     print("\n>>> Jarvis Online. Escuta contínua ativada.")
 
-    humor_nivel = "30%"
+    mood_humor = "30%"
 
     while True:
         try:
@@ -110,9 +110,9 @@ async def main_loop():
             if "humor" in pergunta.lower() and "%" in pergunta:
                 match = re.search(r'humor\s*[:=]?\s*(\d{1,3}%)', pergunta, re.IGNORECASE)
                 if match:
-                    humor_nivel = f"{match.group(1)}"
-                    print(f"JARVIS: Humor atualizado para {humor_nivel}")
-                    threading.Thread(target=play_voice_background, args=(f"Humor atualizado para {humor_nivel}",), daemon=True).start()
+                    mood_humor = f"{match.group(1)}"
+                    print(f"JARVIS: Humor atualizado para {mood_humor}")
+                    threading.Thread(target=play_voice_background, args=(f"Humor atualizado para {mood_humor}",), daemon=True).start()
                     continue
 
             if pergunta.lower() in ["sair", "encerrar", "tchau", "até logo"]:
@@ -122,7 +122,9 @@ async def main_loop():
             loop = asyncio.get_event_loop()
             resultado = await loop.run_in_executor(
                 None, 
-                lambda: agent_executor.invoke({"input": pergunta, "chat_history": historico, "humor_atual": humor_nivel})
+                lambda: agent_executor.invoke({"input": pergunta, 
+                                               "chat_history": historico, 
+                                               "mood_humor": mood_humor})
             )
 
             resposta = resultado.get('output', "")

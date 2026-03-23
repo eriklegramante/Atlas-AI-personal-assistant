@@ -1,5 +1,6 @@
 from langchain_core.tools import tool
 from datetime import datetime
+
 import os
 import shutil
 import platform
@@ -134,5 +135,5 @@ class SystemManager:
             get_current_datetime,
             turn_off,
             move_jarvis,
-            system_diagnostics
+            system_diagnostics,
         ]
