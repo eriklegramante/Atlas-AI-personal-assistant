@@ -46,13 +46,22 @@ class AtlasAvatar:
             logger.error(f"Resize error: {e}")
 
     def draw(self, screen, pos=(0, 0)):
+        """Desenha o avatar centralizado na base da tela."""
         if not self.frames:
             print("--- [AVISO] Avatar.draw tentou desenhar, mas 'frames' está vazia.")
             return
+        
+        screen_w, screen_h = screen.get_size()
+        gif_w, gif_h = self.target_size
+
+        pos_x = (screen_w - gif_w) // 2
+        pos_y = screen_h - gif_h
+
+        self.current_pos = (pos_x, pos_y)
         
         now = pygame.time.get_ticks()
         if now - self.last_update > 80:
             self.frame_index = (self.frame_index + 1) % len(self.frames)
             self.last_update = now
             
-        screen.blit(self.frames[self.frame_index], pos)
+        screen.blit(self.frames[self.frame_index], self.current_pos)

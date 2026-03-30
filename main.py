@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 import re
 import pygame
 import logging
+from random import random
 
 #langchain imports
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -80,11 +81,16 @@ def clean_text_for_speech(text):
 
 def play_voice_background(text):
     """Handles TTS in a separate thread to not block the avatar."""
+    entity_manager = VirtualEntity("ui/assets/") 
+
     try:
         logger.debug(f"Starting voice synthesis for: {text[:30]}...")
+        new_talking_gif = entity_manager.get_new_animation("Talking")
+        if new_talking_gif:
+            avatar.load_gif(new_talking_gif)
         avatar.is_talking = True
+
         speaker = AtlasSpeaker()
-        
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         loop.run_until_complete(speaker.speak(text))
@@ -93,6 +99,9 @@ def play_voice_background(text):
         logger.error(f"Voice/Avatar error: {e}")
     finally:
         avatar.is_talking = False
+        new_standby_path = entity_manager.get_new_animation("Standby")
+        if new_standby_path:
+            avatar.load_gif(new_standby_path)
         logger.debug("Voice synthesis finished.")
 
 async def main_loop():
@@ -105,10 +114,17 @@ async def main_loop():
 
     while True:
         try:
+            if not avatar.is_talking:
+                if random() < 0.03:
+                    new_idle = entity_manager.get_new_animation("Standby")
+                    avatar.load_gif(new_idle)
+                    logger.debug("[INFO] Idle animation triggered.")
+
             while avatar.is_talking or pygame.mixer.get_busy():
                 await asyncio.sleep(0.1)
 
             raw_input = listener.listen()
+
             if not raw_input or len(raw_input.strip()) < 2:
                 continue 
 
