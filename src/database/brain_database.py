@@ -6,11 +6,32 @@ from config.logger import logger
 
 
 class AtlasBrain:
+    """Handles the core storage schema, active conversation streams, and profile tracking layers.
+
+    Leverages non-blocking transactional wrappers via aiosqlite to manage short-term session
+    histories alongside key-value persistence arrays representing permanent long-term memory.
+
+    Attributes:
+        db_path (Path): Absolute structural destination tracking target database file.
+    """
+
     def __init__(self, db_path: Path = settings.DATABASE_PATH):
         self.db_path = db_path
 
-    async def initialize_db(self):
-        """Asynchronously initializes database schema and core tables."""
+    async def initialize_db(self) -> None:
+        """Asynchronously sets up the runtime database layout and structural index constraints.
+
+        Constructs profiling matrices and rolling message storage rows if they are missing.
+
+        Args:
+            None
+
+        Returns:
+            None
+
+        Raises:
+            Exception: Critical fallback trap propagating SQLite schema errors to the core runtime loop.
+        """
         logger.debug(f"Connecting to secure database engine at: {self.db_path}")
         try:
             async with aiosqlite.connect(self.db_path) as conn:
@@ -38,8 +59,19 @@ class AtlasBrain:
             )
             raise e
 
-    async def add_message(self, role: str, content: str, session_id: str = "default"):
-        """Commits a single message transaction (human or ai) to the active session timeline."""
+    async def add_message(
+        self, role: str, content: str, session_id: str = "default"
+    ) -> None:
+        """Appends a single verified interactive message row to the specified session thread.
+
+        Args:
+            role (str): Author signature identity mapping the source ('human' or 'ai').
+            content (str): Textual body data representing the conversation turn context.
+            session_id (str, optional): Target session identity container. Defaults to "default".
+
+        Returns:
+            None
+        """
         logger.debug(f"Logging record into chat history [{session_id}]: {role}")
         try:
             async with aiosqlite.connect(self.db_path) as conn:
@@ -54,9 +86,17 @@ class AtlasBrain:
     async def get_chat_history(
         self, session_id: str = "default", limit: int = 20
     ) -> list[dict]:
-        """
-        Retrieves recent message context slices to feed the short-term memory prompt.
-        Returns a sorted chronological list of structured dictionary payloads.
+        """Harvests an ordered chronological log segment matching the targeted thread string.
+
+        Pulls latest transactions first based on limits, then inverses the sorting arrays
+        to supply structural message timelines to the AI graph.
+
+        Args:
+            session_id (str, optional): Target session identity container. Defaults to "default".
+            limit (int, optional): Maximum window slice of history items to parse. Defaults to 20.
+
+        Returns:
+            list[dict]: Array records displaying 'role' and 'content' metadata keys.
         """
         try:
             async with aiosqlite.connect(self.db_path) as conn:
@@ -76,8 +116,15 @@ class AtlasBrain:
             )
             return []
 
-    async def clear_session_history(self, session_id: str = "default"):
-        """Purges the volatile short-term conversation thread memory for an isolated session."""
+    async def clear_session_history(self, session_id: str = "default") -> None:
+        """Purges short-term interactive record items bound to a specified session index.
+
+        Args:
+            session_id (str, optional): Target session identity container. Defaults to "default".
+
+        Returns:
+            None
+        """
         logger.warning(
             f"Memory purge protocol activated for runtime session: {session_id}"
         )
@@ -95,8 +142,16 @@ class AtlasBrain:
                 f"Error executing memory purge routine for session {session_id}: {e}"
             )
 
-    async def store_fact(self, key: str, value: str):
-        """Saves long-term memory points or key-value profiling metadata regarding the operator."""
+    async def store_fact(self, key: str, value: str) -> None:
+        """Overwrites or inserts a profiling parameter item within the vault storage table.
+
+        Args:
+            key (str): Unique indexing token descriptor tracking user attributes.
+            value (str): Text details allocated to the assigned metadata index key.
+
+        Returns:
+            None
+        """
         logger.debug(f"Storing profiling fact under key '{key}' into long-term vault.")
         try:
             async with aiosqlite.connect(self.db_path) as conn:
@@ -111,7 +166,14 @@ class AtlasBrain:
             )
 
     async def get_fact(self, key: str) -> str | None:
-        """Extracts a specific long-term tracking fact matching the unique identifier."""
+        """Queries the persistent profile matrix to match a long-term tracker string.
+
+        Args:
+            key (str): Unique tracking item reference key.
+
+        Returns:
+            str | None: Retrieved factual value text, or None if the query yields no match.
+        """
         try:
             async with aiosqlite.connect(self.db_path) as conn:
                 async with conn.execute(

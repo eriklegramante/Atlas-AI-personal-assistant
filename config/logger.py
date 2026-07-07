@@ -1,6 +1,5 @@
 import logging
 from logging.handlers import RotatingFileHandler
-from pathlib import Path
 from config.settings import settings
 
 LOGS_DIR = settings.BASE_PATH / "logs"
@@ -10,7 +9,21 @@ LOG_FILE_PATH = LOGS_DIR / "atlas.log"
 
 
 class CustomFormatter(logging.Formatter):
-    """A custom formatter to bring color and clarity to the Ubuntu terminal."""
+    """A custom ANSI-colorized logging formatter optimized for Linux terminal readability.
+
+    This class overrides the standard logging formatter to dynamically inject
+    terminal escape sequences based on the severity level of the log record.
+
+    Attributes:
+        grey (str): ANSI escape sequence for debug log colorization.
+        cyan (str): ANSI escape sequence for informational log colorization.
+        yellow (str): ANSI escape sequence for warning log colorization.
+        red (str): ANSI escape sequence for error log colorization.
+        bold_red (str): ANSI escape sequence for critical systemic failures.
+        reset (str): ANSI escape sequence to restore default terminal styling.
+        log_format (str): The structural format template for string messages.
+        FORMATS (dict): Maps logging levels to their respective colorized formats.
+    """
 
     grey = "\x1b[38;20m"
     cyan = "\x1b[36;20m"
@@ -31,15 +44,37 @@ class CustomFormatter(logging.Formatter):
         logging.CRITICAL: bold_red + log_format + reset,
     }
 
-    def format(self, record):
+    def format(self, record: logging.LogRecord) -> str:
+        """Formats a LogRecord instance into a color-coded string.
+
+        Args:
+            record (logging.LogRecord): The raw log record populated by the framework.
+
+        Returns:
+            str: The fully evaluated text line containing timestamps and severity metadata.
+        """
         log_fmt = self.FORMATS.get(record.levelno)
         formatter = logging.Formatter(log_fmt, datefmt="%Y-%m-%d %H:%M:%S")
         return formatter.format(record)
 
 
 def setup_logger() -> logging.Logger:
-    """Configures the ATLAS central logging system."""
+    """Configures and initializes the ATLAS central logging architecture.
 
+    Establishes a dual-stream logging pipeline consisting of an ANSI-colorized
+    stdout console interface and an asynchronous-safe file rotating engine.
+    Ensures single-instance registration via handler checks to eliminate duplication.
+
+    Args:
+        None
+
+    Returns:
+        logging.Logger: A configured singleton-like logger instance mapped to 'ATLAS'.
+
+    Raises:
+        ValueError: If the environment configuration specifies an invalid log level name.
+        OSError: If the underlying OS denies write access to the targeted log directory.
+    """
     numeric_level = getattr(logging, settings.LOG_LEVEL.upper(), logging.INFO)
 
     logger = logging.getLogger("ATLAS")
