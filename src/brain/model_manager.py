@@ -8,6 +8,17 @@ from config.logger import logger
 
 
 class AtlasModelManager:
+    """Manages the fallback, initialization, and extraction architecture for backend AI engines.
+
+    Coordinates primary local model executions with dynamic tool binding, implements
+    transparent text rewrites upon tool loop exceptions, and establishes a cloud fallback
+    routing layer when local threshold boundaries are broken.
+
+    Attributes:
+        local_model (ChatOllama): Bound instance of the primary local LLM microservice.
+        cloud_model (ChatGoogleGenerativeAI | None): Fallback cloud interface instance.
+    """
+
     def __init__(self):
         logger.debug(f"Initializing local Ollama model: {settings.OLLAMA_MODEL}")
         self.local_model = ChatOllama(
@@ -33,10 +44,17 @@ class AtlasModelManager:
             )
 
     async def invoke_with_fallback(self, payload: list) -> str:
-        """
-        Attempts to process the request on local Ollama with a strict timeout.
-        If the model aggressively triggers a tool call intent instead of text,
-        it automatically re-routes to a text-only instance to force a verbal response.
+        """Processes inference tasks on local engines with automatic cloud overflow fallback.
+
+        Attempts execution on the primary local thread. Intercepts accidental tool execution intents
+        during standard text requests to rewrite them on an unbound layout. Seamlessly drops into
+        Gemini Flash if timeouts or connection failures occur.
+
+        Args:
+            payload (list): Chronological collection of structural LangChain messaging primitives.
+
+        Returns:
+            str: Normalized textual message content extracted from the successful transaction block.
         """
         payload = self._inject_temporal_context(payload)
 
@@ -67,7 +85,7 @@ class AtlasModelManager:
 
             if self.cloud_model:
                 logger.info(
-                    "Overflow protocol activated. Invoking Gemini-2.5-Flash in the cloud..."
+                    "Keep-alive overflow protocol activated. Invoking Gemini-2.5-Flash in the cloud..."
                 )
                 try:
                     response = await self.cloud_model.ainvoke(payload)
@@ -84,23 +102,65 @@ class AtlasModelManager:
                 return "Sir, my local module is overloaded and I possess no active contingency connections."
 
     def _inject_temporal_context(self, payload: list) -> list:
-            """Injects current system date and time into the main SystemMessage prompt using strict English formatting."""
-            now = datetime.datetime.now()
-            
-            # Hardcoded lists to bypass operating system localization (locale pt_BR)
-            days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
-            months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
-            
-            formatted_date = f"{days[now.weekday()]}, {now.day} of {months[now.month - 1]} of {now.year}, at {now.strftime('%H:%M')}"
-            
-            for msg in payload:
-                if isinstance(msg, SystemMessage):
-                    msg.content = f"TEMPORAL DIRECTIVE: Today is {formatted_date}.\n\n{msg.content}"
-                    break
-            return payload
+        """Injects explicit English calendar system properties into the execution parameters.
+
+        Safeguards systemic processing sequences against localization pollution originating from
+        the underlying operating system locale environment.
+
+        Args:
+            payload (list): Original array containing structural chat message states.
+
+        Returns:
+            list: Modified tracking array payload containing the appended temporal context metrics.
+        """
+        now = datetime.datetime.now()
+
+        days = [
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday",
+            "Saturday",
+            "Sunday",
+        ]
+        months = [
+            "January",
+            "February",
+            "March",
+            "April",
+            "May",
+            "June",
+            "July",
+            "August",
+            "September",
+            "October",
+            "November",
+            "December",
+        ]
+
+        formatted_date = f"{days[now.weekday()]}, {now.day} of {months[now.month - 1]} of {now.year}, at {now.strftime('%H:%M')}"
+
+        for msg in payload:
+            if isinstance(msg, SystemMessage):
+                msg.content = (
+                    f"TEMPORAL DIRECTIVE: Today is {formatted_date}.\n\n{msg.content}"
+                )
+                break
+        return payload
 
     def _extract_content(self, response) -> str:
-        """Resiliently processes and extracts raw text content or tool execution metadata from LLM responses."""
+        """Parses operational message return signatures into clear string values.
+
+        Normalizes variation parameters from different message structures, isolating
+        implicit tool call invocations from normal response streams.
+
+        Args:
+            response (Any): Raw data block returning from backend inference cycles.
+
+        Returns:
+            str: Extracted textual contents or encoded tool calling intent metadata.
+        """
         if hasattr(response, "tool_calls") and response.tool_calls:
             tool_name = response.tool_calls[0].get("name", "unknown_tool")
             return f"TOOL_CALL_INTENT: {tool_name}"

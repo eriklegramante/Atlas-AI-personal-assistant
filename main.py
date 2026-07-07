@@ -40,10 +40,14 @@ async def core_loop():
                 await asyncio.sleep(0.5)
                 continue
 
-            # Internationalized local shutdown command triggers
             if any(
                 cmd in user_input.lower()
-                for cmd in ["shutdown system", "terminate atlas", "sleep atlas", "power off"]
+                for cmd in [
+                    "shutdown system",
+                    "terminate atlas",
+                    "sleep atlas",
+                    "power off",
+                ]
             ):
                 logger.warning("Shutdown protocol ordered by the operator.")
                 await speaker.speak(
@@ -72,7 +76,9 @@ async def core_loop():
             await asyncio.sleep(0.5)
 
         except KeyboardInterrupt:
-            logger.warning("Manual interruption detected (Ctrl+C). Saving state and exiting.")
+            logger.warning(
+                "Manual interruption detected (Ctrl+C). Saving state and exiting."
+            )
             break
         except Exception as e:
             logger.error(f"Unexpected error within execution loop: {e}", exc_info=True)

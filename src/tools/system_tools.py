@@ -6,10 +6,20 @@ from config.logger import logger
 
 @tool
 async def system_diagnostics() -> str:
-    """
-    Executes a real-time health check on the operating system hardware resources.
+    """Executes a real-time health check on the operating system hardware resources.
+
     Must be invoked whenever the user queries computer health, memory footprint,
-    CPU utilization, available disk space, or central system integrity.
+    CPU utilization, available disk space, or central system integrity. Captures host
+    infrastructure utilization signatures using raw hardware polling hooks.
+
+    Args:
+        None
+
+    Returns:
+        str: A color-clean, verbally optimized report outlining structural metric logs.
+
+    Raises:
+        Exception: Captures and isolates hardware sensor faults from breaking graph operations.
     """
     logger.info("Tool [system_diagnostics] triggered by the agent execution flow.")
     try:

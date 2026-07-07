@@ -3,12 +3,22 @@ from langchain_core.messages import SystemMessage, HumanMessage, AIMessage, Tool
 from langgraph.graph import StateGraph, START, END
 from langgraph.graph.message import add_messages
 from src.brain.model_manager import AtlasModelManager
-from src.tools import TOOLS_MAP  # Our dynamic tools map
+from src.tools import TOOLS_MAP
 from config.settings import settings
 from config.logger import logger
 
 
 class AgentState(TypedDict):
+    """Represents the complete memory and evaluation state context for the LangGraph engine.
+
+    Attributes:
+        input (str): Raw string input captured from the client conversation layer.
+        chat_history_raw (List[dict]): Database-extracted historical interaction arrays.
+        mood_humor (str): Configured programmatic sarcasm parameter string.
+        messages (Annotated[list, add_messages]): Append-only transaction log of LangChain tokens.
+        response (str): The calculated final response targeted for TTS translation.
+    """
+
     input: str
     chat_history_raw: List[dict]
     mood_humor: str
@@ -17,13 +27,35 @@ class AgentState(TypedDict):
 
 
 class AtlasBrainGraph:
+    """Manages the orchestrating state machine engine controlling cognitive reasoning paths.
+
+    Leverages LangGraph to explicitly evaluate incoming operational instructions,
+    determine tool execution requirements, inject state persistence parameters,
+    and fallback across available engines gracefully.
+
+    Attributes:
+        model_manager (AtlasModelManager): Orchestrator interface managing AI backends.
+        workflow (StateGraph): State transition graph layout engine instance.
+        app (CompiledGraph): Executable workflow entity produced after graph assembly.
+    """
+
     def __init__(self):
         self.model_manager = AtlasModelManager()
         self.workflow = StateGraph(AgentState)
         self._build_graph()
 
     async def _call_brain(self, state: AgentState) -> dict:
-        """Node that prepares the structured prompt and invokes local or cloud intelligence."""
+        """Evaluates conversational context matrices to generate model predictions.
+
+        Prepares system prompts, aggregates previous short-term history lines,
+        combines them with active tool tracking logs, and executes core inference.
+
+        Args:
+            state (AgentState): The active pipeline memory tracking state dictionary.
+
+        Returns:
+            dict: Delta updates reflecting the generated message and extracted text results.
+        """
         logger.info("--- [DEBUG GRAPH] Node _call_brain Started ---")
 
         raw_history = state.get("chat_history_raw", [])
@@ -93,7 +125,17 @@ class AtlasBrainGraph:
             return {"messages": [error_msg], "response": error_msg.content}
 
     async def _execute_tools(self, state: AgentState) -> dict:
-        """Node responsible for autonomously executing the tools requested by the AI."""
+        """Iterates over the last model message to invoke called tool functions.
+
+        Maps tool metadata objects directly to functional instances declared on the system,
+        executes them asynchronously, and formats data into standard ToolMessage records.
+
+        Args:
+            state (AgentState): The active pipeline memory tracking state dictionary.
+
+        Returns:
+            dict: Delta updates housing the generated list of functional ToolMessages.
+        """
         logger.info("--- [DEBUG GRAPH] Starting node _execute_tools ---")
         last_message = state["messages"][-1]
         tool_messages = []
@@ -140,7 +182,16 @@ class AtlasBrainGraph:
         return {"messages": tool_messages}
 
     def _router(self, state: AgentState) -> str:
-        """Conditional edge that decides whether the graph routing moves to tool execution or terminates."""
+        """Decides the appropriate subsequent workflow route step based on systemic outputs.
+
+        Inspects the termination tokens of the tracking matrix to detect outstanding tool requests.
+
+        Args:
+            state (AgentState): The active pipeline memory tracking state dictionary.
+
+        Returns:
+            str: Target edge identity destination string ('execute_tools' or 'end').
+        """
         last_message = state["messages"][-1]
         if hasattr(last_message, "tool_calls") and last_message.tool_calls:
             logger.debug(
@@ -152,8 +203,8 @@ class AtlasBrainGraph:
         )
         return "end"
 
-    def _build_graph(self):
-        """Maps and binds nodes and logical conditions into the workflow graph."""
+    def _build_graph(self) -> None:
+        """Assembles internal processing nodes, linear edges, and routing paths."""
         self.workflow.add_node("call_brain", self._call_brain)
         self.workflow.add_node("execute_tools", self._execute_tools)
 
@@ -171,7 +222,19 @@ class AtlasBrainGraph:
     async def execute(
         self, user_input: str, history_raw: List[dict], humor: str = "30%"
     ) -> str:
-        """Asynchronous executable interface to invoke the graph loop from external modules."""
+        """Triggers the compiled graph application execution pipeline.
+
+        Prepares standard input containers, wraps async task targets, steps across nodes,
+        and unifies final text output components for caller distribution.
+
+        Args:
+            user_input (str): The raw string command sourced from structural voice parsing.
+            history_raw (List[dict]): Chat interaction timeline rows retrieved from storage.
+            humor (str, optional): Target sarcastic variance threshold. Defaults to "30%".
+
+        Returns:
+            str: The fully executed response message.
+        """
         initial_state = {
             "input": user_input,
             "chat_history_raw": history_raw,
