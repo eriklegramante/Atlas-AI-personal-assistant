@@ -2,7 +2,7 @@ import datetime
 from langchain_ollama import ChatOllama
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import SystemMessage
-from src.tools import ATLAS_TOOLS, TOOLS_MAP
+from src.tools import ATLAS_TOOLS
 from config.settings import settings
 from config.logger import logger
 
