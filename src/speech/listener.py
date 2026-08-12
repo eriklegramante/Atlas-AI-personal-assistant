@@ -61,7 +61,7 @@ class AtlasListener:
 
             segments, info = self.model.transcribe(
                 audio_segments,
-                language="pt",
+                language=None,
                 beam_size=5,
                 initial_prompt=self.phonetic_prompt,
             )
