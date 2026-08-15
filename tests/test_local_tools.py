@@ -2,6 +2,7 @@ import pytest
 from src.tools.math_tools import calculate_basic_math
 from src.tools.cyber_tools import execute_local_ping
 
+
 @pytest.mark.asyncio
 async def test_calculate_basic_math_success():
     add_result = await calculate_basic_math.ainvoke(
@@ -36,6 +37,8 @@ async def test_calculate_basic_math_division_by_zero():
 @pytest.mark.asyncio
 async def test_execute_local_ping_loopback():
     result = await execute_local_ping.ainvoke({"host": "127.0.0.1"})
-    
-    assert "network connection to 127.0.0.1 is stable" in result or "unreachable" in result
+
+    assert (
+        "network connection to 127.0.0.1 is stable" in result or "unreachable" in result
+    )
     assert "Sir" in result
